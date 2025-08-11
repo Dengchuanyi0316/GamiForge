@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.note.mapper.NoteMapper">
+    <!-- 基础结果集映射 -->
+    <resultMap id="BaseResultMap" type="com.forge.gami.note.model.Note">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="content_json" property="contentJson"/>
+        <result column="status" property="status"/>
+        <result column="tags" property="tags"/>
+        <result column="cover_image" property="coverImage"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM notes WHERE id = #{id}
+    </select>
+
+    <!-- 新增笔记 -->
+    <insert id="insert" parameterType="com.forge.gami.note.model.Note">
+        INSERT INTO notes (
+            title, description, content_json, status,
+            tags, cover_image, created_at, updated_at
+        ) VALUES (
+                     #{title}, #{description}, #{contentJson}, #{status},
+                     #{tags}, #{coverImage}, #{createdAt}, #{updatedAt}
+                 )
+    </insert>
+
+    <!-- 更新笔记 -->
+    <update id="update" parameterType="com.forge.gami.note.model.Note">
+        UPDATE notes SET
+                         title = #{title},
+                         description = #{description},
+                         content_json = #{contentJson},
+                         status = #{status},
+                         tags = #{tags},
+                         cover_image = #{coverImage},
+                         updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除笔记 -->
+    <delete id="deleteById">
+        DELETE FROM notes WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有笔记 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM notes ORDER BY updated_at DESC
+    </select>
+</mapper>
