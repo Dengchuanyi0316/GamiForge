@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.resource.mapper.ResourceTagMapper">
+    <!-- 为资源添加标签 -->
+    <insert id="insertResourceTag">
+        INSERT INTO resource_tags (resource_id, tag_id)
+        VALUES (#{resourceId}, #{tagId})
+    </insert>
+
+    <!-- 批量插入标签 -->
+    <insert id="insertResourceTags">
+        INSERT INTO resource_tags (resource_id, tag_id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.resourceId}, #{item.tagId})
+        </foreach>
+    </insert>
+
+    <!-- 删除某资源的所有标签 -->
+    <delete id="deleteTagsByResourceId">
+        DELETE FROM resource_tags WHERE resource_id=#{resourceId}
+    </delete>
+
+    <!-- 删除单个标签关联 -->
+    <delete id="deleteTag">
+        DELETE FROM resource_tags WHERE resource_id=#{resourceId} AND tag_id=#{tagId}
+    </delete>
+
+</mapper>

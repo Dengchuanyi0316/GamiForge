@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.resource.mapper.ResourceMapper">
+    <resultMap id="ResourceWithTags" type="com.forge.gami.resource.model.Resource">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="category" column="category"/>
+        <result property="filePath" column="file_path"/>
+        <result property="thumbnailPath" column="thumbnail_path"/>
+        <result property="description" column="description"/>
+        <result property="addedAt" column="added_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <collection property="tags" ofType="com.forge.gami.resource.model.Tag">
+            <id property="id" column="tag_id"/>
+            <result property="name" column="tag_name"/>
+            <result property="category" column="tag_category"/>
+        </collection>
+    </resultMap>
+
+    <!-- 根据资源ID查询资源及标签 -->
+    <select id="selectResourceById" resultMap="ResourceWithTags">
+        SELECT r.id, r.name, r.category, r.file_path, r.thumbnail_path,
+               r.description, r.added_at, r.updated_at,
+               t.id AS tag_id, t.name AS tag_name, t.category AS tag_category
+        FROM resources r
+                 LEFT JOIN resource_tags rt ON r.id = rt.resource_id
+                 LEFT JOIN tags t ON rt.tag_id = t.id
+        WHERE r.id = #{id}
+    </select>
+
+    <!-- 查询所有资源 -->
+    <select id="selectAllResources" resultMap="ResourceWithTags">
+        SELECT r.id, r.name, r.category, r.file_path, r.thumbnail_path,
+               r.description, r.added_at, r.updated_at,
+               t.id AS tag_id, t.name AS tag_name, t.category AS tag_category
+        FROM resources r
+                 LEFT JOIN resource_tags rt ON r.id = rt.resource_id
+                 LEFT JOIN tags t ON rt.tag_id = t.id
+    </select>
+
+    <!-- 新增资源 -->
+    <insert id="insertResource" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO resources (name, category, file_path, thumbnail_path, description, added_at, updated_at)
+        VALUES (#{name}, #{category}, #{filePath}, #{thumbnailPath}, #{description}, #{addedAt}, #{updatedAt})
+    </insert>
+
+    <!-- 更新资源 -->
+    <update id="updateResource">
+        UPDATE resources
+        SET name=#{name}, category=#{category}, file_path=#{filePath},
+            thumbnail_path=#{thumbnailPath}, description=#{description}, updated_at=#{updatedAt}
+        WHERE id=#{id}
+    </update>
+
+    <!-- 删除资源 -->
+    <delete id="deleteResourceById">
+        DELETE FROM resources WHERE id=#{id}
+    </delete>
+
+</mapper>

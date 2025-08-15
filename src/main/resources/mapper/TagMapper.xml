@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.resource.mapper.TagMapper">
+    <!-- 查询所有标签 -->
+    <select id="selectAllTags" resultType="com.forge.gami.resource.model.Tag">
+        SELECT id, name, category FROM tags
+    </select>
+
+    <!-- 根据ID查询标签 -->
+    <select id="selectTagById" resultType="com.forge.gami.resource.model.Tag">
+        SELECT id, name, category FROM tags WHERE id=#{id}
+    </select>
+
+    <!-- 根据大分类查询标签 -->
+    <select id="selectTagByCategory" resultType="com.forge.gami.resource.model.Tag">
+        SELECT id, name, category FROM tags WHERE category=#{category}
+    </select>
+
+    <!-- 插入标签 -->
+    <insert id="insertTag" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tags (name, category) VALUES (#{name}, #{category})
+    </insert>
+
+    <!-- 更新标签 -->
+    <update id="updateTag">
+        UPDATE tags SET name=#{name}, category=#{category} WHERE id=#{id}
+    </update>
+
+    <!-- 删除标签 -->
+    <delete id="deleteTagById">
+        DELETE FROM tags WHERE id=#{id}
+    </delete>
+
+</mapper>
+
