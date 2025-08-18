@@ -2,6 +2,7 @@ package com.forge.gami.resource.controller;
 
 import com.forge.gami.resource.dto.ResourceDTO;
 import com.forge.gami.resource.model.Resource;
+import com.forge.gami.resource.model.Tag;
 import com.forge.gami.resource.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,12 @@ public class ResourceController {
         return resourceService.getResourceById(id);
     }
 
+    // 根据分类查询资源
+    @GetMapping("/category/{category}")
+    public List<Resource> getResourcesByCategory(@PathVariable String category) {
+        return resourceService.getResourcesByCategory(category);
+    }
+
     // 资源文件上传接口
     @PostMapping("/upload")
     public Map<String, String> uploadResourceFile(@RequestParam("file") MultipartFile file,
@@ -51,13 +58,13 @@ public class ResourceController {
     public String addResource(@RequestBody Resource resource) {
 
         // 获取标签 ID 列表
-        List<Integer> tagIds = resource.getTags();
+        List<Tag> tags = resource.getTags();
 
         // 打印传递给 service 方法的参数
         System.out.println("传递给 resourceService.addResource 的 Resource 对象: " + resource);
-        System.out.println("传递给 resourceService.addResource 的标签 ID 列表: " + tagIds);
+        System.out.println("传递给 resourceService.addResource 的标签 ID 列表: " + tags);
 
-        int rows = resourceService.addResource(resource, tagIds);
+        int rows = resourceService.addResource(resource, tags);
         return rows > 0 ? "添加成功" : "添加失败";
     }
 

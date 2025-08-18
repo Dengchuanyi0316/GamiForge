@@ -14,6 +14,9 @@ public interface ResourceMapper {
     // 查询所有资源及标签
     List<Resource> selectAllResources();
 
+    // 根据分类查询资源
+    List<Resource> selectResourcesByCategory(@Param("category") String category);
+
     // 插入资源（返回自增id）
     int insertResource(Resource resource);
 

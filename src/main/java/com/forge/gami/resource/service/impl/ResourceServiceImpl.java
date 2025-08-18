@@ -5,6 +5,7 @@ import com.forge.gami.resource.mapper.ResourceTagMapper;
 import com.forge.gami.resource.mapper.TagMapper;
 import com.forge.gami.resource.model.Resource;
 import com.forge.gami.resource.model.ResourceTag;
+import com.forge.gami.resource.model.Tag;
 import com.forge.gami.resource.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +54,11 @@ public class ResourceServiceImpl implements ResourceService {
         List<Resource> resources = resourceMapper.selectAllResources();
         // 可选：批量查询并填充标签
         return resources;
+    }
+
+    @Override
+    public List<Resource> getResourcesByCategory(String category) {
+        return resourceMapper.selectResourcesByCategory(category);
     }
 
     private Map<String, String> saveFileToTimestampFolder(MultipartFile file, String baseUploadPath, String fileTypeName, String folder,String fixedFileName) {
@@ -117,7 +123,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional
-    public int addResource(Resource resource, List<Integer> tagIds) {
+    public int addResource(Resource resource, List<Tag> tags) {
         // 设置资源添加时间为当前时间
         resource.setAddedAt(java.time.LocalDateTime.now());
         // 设置资源更新时间为当前时间
@@ -125,10 +131,10 @@ public class ResourceServiceImpl implements ResourceService {
         int rows = resourceMapper.insertResource(resource); // 插入资源，自动生成id
         Integer resourceId = resource.getId(); // 获取自增ID
 
-        if (tagIds != null && !tagIds.isEmpty()) {
+        if (tags != null && !tags.isEmpty()) {
             List<ResourceTag> relations = new ArrayList<>();
-            for (Integer tagId : tagIds) {
-                relations.add(new ResourceTag(resourceId, tagId));
+            for (Tag tag : tags) {
+                relations.add(new ResourceTag(resourceId, tag.getId()));
             }
             resourceTagMapper.insertResourceTags(relations);
         }

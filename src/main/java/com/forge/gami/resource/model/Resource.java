@@ -14,7 +14,7 @@ public class Resource {
     private LocalDateTime updatedAt; // 更新时间
 
     // 可选：标签列表
-    private List<Integer> tags;
+    private List<Tag> tags;
 
     public Integer getId() {
         return id;
@@ -80,11 +80,11 @@ public class Resource {
         this.updatedAt = updatedAt;
     }
 
-    public List<Integer> getTags() {
+    public List<Tag> getTags() {
         return tags;
     }
 
-    public void setTags(List<Integer> tags) {
+    public void setTags(List<Tag> tags) {
         this.tags = tags;
     }
 
