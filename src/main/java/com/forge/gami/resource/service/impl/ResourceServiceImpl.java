@@ -99,7 +99,7 @@ public class ResourceServiceImpl implements ResourceService {
             file.transferTo(destFile);
 
             // 5. 返回文件夹路径
-            String folderUrl = baseUploadPath + "/" + today + "/" + timestampFolder + "/";
+            String folderUrl = "/files/" + today + "/" + timestampFolder + "/";
             if (fixedFileName.equals("thumbnail.jpg")){
                 folderUrl = folderUrl + fixedFileName;
             }
