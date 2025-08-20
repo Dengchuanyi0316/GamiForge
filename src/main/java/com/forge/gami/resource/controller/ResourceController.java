@@ -5,9 +5,13 @@ import com.forge.gami.resource.model.Resource;
 import com.forge.gami.resource.model.Tag;
 import com.forge.gami.resource.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -82,5 +86,24 @@ public class ResourceController {
     public String deleteResource(@PathVariable Integer id) {
         int rows = resourceService.deleteResource(id);
         return rows > 0 ? "删除成功" : "删除失败";
+    }
+
+    // 根据资源ID查询文件数量及总大小
+    @GetMapping("/{resourceId}/file-info")
+    public Map<String, Object> getFileInfo(@PathVariable Integer resourceId) {
+        return resourceService.getFileInfoByResourceId(resourceId);
+    }
+
+    // 提供压缩文件夹下载
+    @GetMapping("/{resourceId}/download-zip")
+    public ResponseEntity<org.springframework.core.io.Resource> downloadZip(@PathVariable Integer resourceId) throws IOException {
+        org.springframework.core.io.Resource zipFile = resourceService.getResourceZipById(resourceId);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"resource-" + resourceId + ".zip\"");
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentLength(zipFile.contentLength());
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(zipFile);
     }
 }

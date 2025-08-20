@@ -9,18 +9,24 @@ import com.forge.gami.resource.model.Tag;
 import com.forge.gami.resource.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ResourceServiceImpl implements ResourceService {
@@ -170,6 +176,117 @@ public class ResourceServiceImpl implements ResourceService {
         resourceTagMapper.deleteTagsByResourceId(id);
         // 再删除资源
         return resourceMapper.deleteResourceById(id);
+    }
+
+    @Override
+    public Map<String, Object> getFileInfoByResourceId(Integer resourceId) {
+        Map<String, Object> fileInfo = new HashMap<>();
+        Resource resource = getResourceById(resourceId);
+        if (resource == null) {
+            throw new RuntimeException("资源不存在");
+        }
+
+        // 移除数据库路径中的"/files/"前缀，并拼接实际存储路径
+        String dbPath = resource.getFilePath();
+        String relativePath = dbPath.replace("/files/", "");
+        Path directoryPath = Paths.get(baseUploadPath, relativePath);
+        System.out.println("===========文件夹路径============" + directoryPath);
+
+        File directory = directoryPath.toFile();
+        if (!directory.exists() || !directory.isDirectory()) {
+            throw new RuntimeException("资源文件路径不存在或不是目录");
+        }
+
+        // 计算文件数量和总大小
+        long fileCount = countFiles(directory);
+        long totalSize = calculateTotalSize(directory);
+
+        fileInfo.put("fileCount", fileCount);
+        fileInfo.put("totalSize", totalSize);
+        fileInfo.put("unit", "bytes");
+
+        return fileInfo;
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getResourceZipById(Integer resourceId) {
+        Resource resource = getResourceById(resourceId);
+        if (resource == null) {
+            throw new RuntimeException("资源不存在");
+        }
+
+        String dbPath = resource.getFilePath();
+        String relativePath = dbPath.replace("/files/", "");
+        Path sourcePath = Paths.get(baseUploadPath, relativePath);
+
+        String zipFileName = "resource-" + resourceId + ".zip";
+        Path zipFilePath = Paths.get(baseUploadPath, "temp", zipFileName);
+        File zipFile = zipFilePath.toFile();
+
+        // 创建临时目录
+        File tempDir = zipFilePath.getParent().toFile();
+        if (!tempDir.exists()) {
+            tempDir.mkdirs();
+        }
+
+        try {
+            // 压缩文件夹
+            zipDirectory(sourcePath.toFile(), zipFile);
+            return new FileSystemResource(zipFile); // 返回Spring的Resource实现类
+        } catch (IOException e) {
+            throw new RuntimeException("压缩文件失败: " + e.getMessage());
+        }
+    }
+
+    // 辅助方法：计算目录下文件总数
+    private long countFiles(File directory) {
+        File[] files = directory.listFiles();
+        if (files == null) return 0;
+
+        long count = 0;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                count += countFiles(file);
+            } else {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // 辅助方法：计算目录下文件总大小
+    private long calculateTotalSize(File directory) {
+        File[] files = directory.listFiles();
+        if (files == null) return 0;
+
+        long totalSize = 0;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                totalSize += calculateTotalSize(file);
+            } else {
+                totalSize += file.length();
+            }
+        }
+        return totalSize;
+    }
+
+    // 辅助方法：压缩目录
+    private void zipDirectory(File sourceDir, File zipFile) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+            Path sourcePath = sourceDir.toPath();
+            Files.walk(sourcePath)
+                    .filter(Files::isRegularFile)
+                    .forEach(path -> {
+                        ZipEntry zipEntry = new ZipEntry(sourcePath.relativize(path).toString());
+                        try {
+                            zos.putNextEntry(zipEntry);
+                            Files.copy(path, zos);
+                            zos.closeEntry();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
     }
 
 }

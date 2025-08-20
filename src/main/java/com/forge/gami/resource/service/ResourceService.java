@@ -29,4 +29,10 @@ public interface ResourceService {
 
     // 删除资源及其标签关联
     int deleteResource(Integer id);
+
+    // 根据资源ID查询文件数量及总大小
+    Map<String, Object> getFileInfoByResourceId(Integer resourceId);
+
+    // 提供压缩文件夹下载
+    org.springframework.core.io.Resource getResourceZipById(Integer resourceId);
 }
