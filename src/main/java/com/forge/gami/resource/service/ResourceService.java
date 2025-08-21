@@ -54,4 +54,11 @@ public interface ResourceService {
      * @return 文件资源
      */
     FileSystemResource getFileResource(String filePath);
+
+    /**
+     * 根据标签 ID 数组查询资源
+     * @param tagIds 标签 ID 数组
+     * @return 符合条件的资源列表
+     */
+    List<Resource> getResourcesByTagIds(List<Integer> tagIds);
 }

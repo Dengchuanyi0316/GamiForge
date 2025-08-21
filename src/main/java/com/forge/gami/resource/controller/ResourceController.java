@@ -157,4 +157,14 @@ public class ResourceController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * 根据标签 ID 数组查询资源
+     * @param tagIds 标签 ID 数组
+     * @return 符合条件的资源列表
+     */
+    @GetMapping("/by-tag-ids")
+    public List<Resource> getResourcesByTagIds(@RequestParam List<Integer> tagIds) {
+        return resourceService.getResourcesByTagIds(tagIds);
+    }
 }

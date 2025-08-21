@@ -435,6 +435,10 @@ public class ResourceServiceImpl implements ResourceService {
         return null;
     }
 
+    @Override
+    public List<Resource> getResourcesByTagIds(List<Integer> tagIds) {
+        return resourceMapper.selectResourcesByTagIds(tagIds);
+    }
 
 
 }
