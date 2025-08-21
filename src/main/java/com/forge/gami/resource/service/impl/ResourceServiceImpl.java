@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -43,6 +45,11 @@ public class ResourceServiceImpl implements ResourceService {
     // 从配置文件读取基础上传目录
     @Value("${upload.base.path}")
     private String baseUploadPath;
+
+    @Value("${server.base.url}")
+    private String serverBaseUrl;
+
+    private final Map<String, TokenInfo> tempTokens = new ConcurrentHashMap<>();
 
     @Override
     public Resource getResourceById(Integer id) {
@@ -288,5 +295,146 @@ public class ResourceServiceImpl implements ResourceService {
                     });
         }
     }
+
+    @Override
+    public String generateFilePreviewHtml(Integer resourceId) throws Exception {
+        // 1. 根据资源ID获取资源信息
+        Resource resource = getResourceById(resourceId);
+        if (resource == null) {
+            throw new IllegalArgumentException("资源不存在，ID: " + resourceId);
+        }
+
+        // 2. 处理文件路径，获取实际物理路径
+        String dbPath = resource.getFilePath();
+        String relativePath = dbPath.replace("/files/", "");
+        Path resourceDir = Paths.get(baseUploadPath, relativePath);
+
+        // 3. 验证目录是否存在
+        if (!Files.exists(resourceDir) || !Files.isDirectory(resourceDir)) {
+            throw new IOException("资源目录不存在: " + resourceDir);
+        }
+
+        // 4. 生成HTML页面
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<!DOCTYPE html>");
+        htmlBuilder.append("<html lang=\"zh-CN\">");
+        htmlBuilder.append("<head>");
+        htmlBuilder.append("<meta charset=\"UTF-8\">");
+        htmlBuilder.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        htmlBuilder.append("<title>资源文件预览 - ID: ").append(resourceId).append("</title>");
+        htmlBuilder.append("<style>");
+        htmlBuilder.append("  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f7fa; }");
+        htmlBuilder.append("  .container { background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; }");
+        htmlBuilder.append("  h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }");
+        htmlBuilder.append("  .file-list { list-style: none; padding: 0; margin-top: 20px; }");
+        htmlBuilder.append("  .file-item { padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; }");
+        htmlBuilder.append("  .file-item:last-child { border-bottom: none; }");
+        htmlBuilder.append("  .file-item:hover { background-color: #f8f9fa; }");
+        htmlBuilder.append("  .file-icon { margin-right: 10px; color: #6c757d; }");
+        htmlBuilder.append("  .file-link { text-decoration: none; color: #007bff; font-weight: 500; }");
+        htmlBuilder.append("  .file-link:hover { text-decoration: underline; }");
+        htmlBuilder.append("  .expiry-note { color: #6c757d; font-size: 0.9em; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ddd; }");
+        htmlBuilder.append("</style>");
+        htmlBuilder.append("</head>");
+        htmlBuilder.append("<body>");
+        htmlBuilder.append("<div class=\"container\">");
+        htmlBuilder.append("  <h1>资源文件预览 (ID: ").append(resourceId).append(")</h1>");
+        htmlBuilder.append("  <ul class=\"file-list\">");
+
+        // 遍历资源目录下的文件
+        Files.walk(resourceDir, 1)
+                .filter(Files::isRegularFile)
+                .forEach(filePath -> {
+                    String fileName = filePath.getFileName().toString();
+                    String fileIcon = getFileIcon(fileName);
+                    String tempToken = generateTempToken(filePath.toString());
+                    String fileUrl = serverBaseUrl + "/api/resources/preview?token=" + tempToken;
+
+                    htmlBuilder.append("    <li class=\"file-item\">");
+                    htmlBuilder.append("      <span class=\"file-icon\">").append(fileIcon).append("</span>");
+                    htmlBuilder.append("      <a class=\"file-link\" href=\"").append(fileUrl).append("\" target=\"_blank\">").append(fileName).append("</a>");
+                    htmlBuilder.append("    </li>");
+                });
+
+        htmlBuilder.append("  </ul>");
+        htmlBuilder.append("  <p class=\"expiry-note\">文件链接 30 分钟后过期，请及时下载。</p>");
+        htmlBuilder.append("</div>");
+        htmlBuilder.append("</body>");
+        htmlBuilder.append("</html>");
+
+        return htmlBuilder.toString();
+    }
+
+    /**
+     * 生成临时访问令牌
+     */
+    private String generateTempToken(String filePath) {
+        String token = UUID.randomUUID().toString();
+        long expiryTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30); // 30分钟过期
+        tempTokens.put(token, new TokenInfo(filePath, expiryTime));
+        return token;
+    }
+
+    /**
+     * 根据文件名获取文件图标
+     */
+    private String getFileIcon(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        switch (extension) {
+            case "pdf": return "📄 ";
+            case "doc":
+            case "docx": return "📝 ";
+            case "xls":
+            case "xlsx": return "📊 ";
+            case "ppt":
+            case "pptx": return "📑 ";
+            case "jpg":
+            case "jpeg":
+            case "png":
+            case "gif": return "🖼️ ";
+            case "zip":
+            case "rar":
+            case "7z": return "🗜️ ";
+            case "txt": return "📄 ";
+            case "java":
+            case "py":
+            case "js": return "💻 ";
+            default: return "📄 ";
+        }
+    }
+
+    /**
+     * 令牌信息内部类
+     */
+    private static class TokenInfo {
+        String filePath;
+        long expiryTime;
+
+        TokenInfo(String filePath, long expiryTime) {
+            this.filePath = filePath;
+            this.expiryTime = expiryTime;
+        }
+    }
+
+    @Override
+    public String validateTempToken(String token) {
+        TokenInfo tokenInfo = tempTokens.get(token);
+        if (tokenInfo != null && System.currentTimeMillis() < tokenInfo.expiryTime) {
+            return tokenInfo.filePath;
+        }
+        tempTokens.remove(token);
+        return null;
+    }
+
+    @Override
+    public FileSystemResource getFileResource(String filePath) {
+        File file = new File(filePath);
+        if (file.exists() && file.isFile()) {
+            return new FileSystemResource(file);
+        }
+        return null;
+    }
+
+
 
 }

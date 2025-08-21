@@ -5,6 +5,7 @@ import com.forge.gami.resource.model.Resource;
 import com.forge.gami.resource.model.Tag;
 import com.forge.gami.resource.service.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/resources")
@@ -105,5 +108,53 @@ public class ResourceController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(zipFile);
+    }
+    /**
+     * 文件预览接口
+     */
+    @GetMapping(value = "/{resourceId}/preview", produces = MediaType.TEXT_HTML_VALUE)
+    public String previewFiles(@PathVariable Integer resourceId) throws Exception {
+        return resourceService.generateFilePreviewHtml(resourceId);
+    }
+
+    /**
+     * 根据临时令牌预览文件
+     * @param token 临时令牌
+     * @return 文件响应实体
+     * @throws  IOException 文件操作异常
+     */
+    @GetMapping("/preview")
+    public ResponseEntity<org.springframework.core.io.Resource> previewFile(@RequestParam("token") String token) throws IOException {
+        try {
+            String filePath = resourceService.validateTempToken(token);
+            if (filePath == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            FileSystemResource fileResource = resourceService.getFileResource(filePath);
+            if (fileResource == null || !fileResource.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // 根据文件类型设置 Content-Type
+            String contentType = Files.probeContentType(Paths.get(filePath));
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            // 设置为 inline 以实现预览
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileResource.getFilename() + "\"");
+            headers.setContentType(MediaType.parseMediaType(contentType));
+            headers.setContentLength(fileResource.contentLength());
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(fileResource);
+        } catch (Exception e) {
+            System.err.println("预览文件时出现异常: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

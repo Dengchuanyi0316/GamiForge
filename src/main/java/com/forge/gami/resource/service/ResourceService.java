@@ -2,6 +2,7 @@ package com.forge.gami.resource.service;
 
 import com.forge.gami.resource.model.Resource;
 import com.forge.gami.resource.model.Tag;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -35,4 +36,22 @@ public interface ResourceService {
 
     // 提供压缩文件夹下载
     org.springframework.core.io.Resource getResourceZipById(Integer resourceId);
+
+    // 文件预览
+    String generateFilePreviewHtml(Integer resourceId) throws Exception;
+
+    /**
+     * 验证临时令牌并返回文件路径
+     * @param token 临时令牌
+     * @return 文件路径，若令牌无效则返回 null
+     */
+    String validateTempToken(String token);
+
+    /**
+     * 根据文件路径获取文件资源
+     *
+     * @param filePath 文件路径
+     * @return 文件资源
+     */
+    FileSystemResource getFileResource(String filePath);
 }
