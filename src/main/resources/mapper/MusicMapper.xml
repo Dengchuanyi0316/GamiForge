@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.music.mapper.MusicMapper">
+    <!-- 结果映射 -->
+    <resultMap id="MusicResultMap" type="com.forge.gami.music.model.Music">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="artist" column="artist"/>
+        <result property="url" column="url"/>
+        <result property="duration" column="duration"/>
+        <result property="playCount" column="play_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 插入 -->
+    <insert id="insertMusic" parameterType="com.forge.gami.music.model.Music" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO music (title, artist, url, duration, play_count, created_at, updated_at)
+        VALUES (#{title}, #{artist}, #{url}, #{duration}, #{playCount}, NOW(), NOW())
+    </insert>
+
+    <!-- 删除 -->
+    <delete id="deleteMusic" parameterType="int">
+        DELETE FROM music WHERE id = #{id}
+    </delete>
+
+    <!-- 修改 -->
+    <update id="updateMusic" parameterType="com.forge.gami.music.model.Music">
+        UPDATE music
+        SET title = #{title},
+            artist = #{artist},
+            url = #{url},
+            duration = #{duration},
+            play_count = #{playCount},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectMusicById" parameterType="int" resultMap="MusicResultMap">
+        SELECT * FROM music WHERE id = #{id}
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="selectAllMusic" resultMap="MusicResultMap">
+        SELECT * FROM music ORDER BY created_at DESC
+    </select>
+
+</mapper>
