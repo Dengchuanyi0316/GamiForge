@@ -26,6 +26,9 @@ public class WebConfig implements WebMvcConfigurer {
         // 把 /files/** 映射到 D:/file-self/ 目录
         registry.addResourceHandler("/files/**")
                 .addResourceLocations("file:"+uploadBasePath + "/");
+        // 添加音乐文件映射: /music/ -> D:/file-self/music/
+        registry.addResourceHandler("/music/**")
+                .addResourceLocations("file:"+uploadBasePath + "/music/");
     }
 
 }
