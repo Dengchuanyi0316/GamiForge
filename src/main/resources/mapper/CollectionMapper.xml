@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.forge.gami.music.mapper.CollectionMapper">
+    <resultMap id="CollectionResultMap" type="com.forge.gami.music.model.Collection">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="userId" column="user_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 插入 -->
+    <insert id="insertCollection" parameterType="com.forge.gami.music.model.Collection" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO collection (name, user_id)
+        VALUES (#{name}, #{userId})
+    </insert>
+
+    <!-- 删除 -->
+    <delete id="deleteCollection" parameterType="int">
+        DELETE FROM collection WHERE id = #{id}
+    </delete>
+
+    <!-- 更新 -->
+    <update id="updateCollection" parameterType="com.forge.gami.music.model.Collection">
+        UPDATE collection
+        SET name = #{name},
+            user_id = #{userId}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectCollectionById" resultMap="CollectionResultMap" parameterType="int">
+        SELECT * FROM collection WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="selectAllCollections" resultMap="CollectionResultMap">
+        SELECT * FROM collection ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据用户ID查 -->
+    <select id="selectCollectionsByUserId" resultMap="CollectionResultMap" parameterType="int">
+        SELECT * FROM collection WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+</mapper>
