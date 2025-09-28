@@ -10,6 +10,7 @@ public class Resource {
     private String filePath;         // 文件路径
     private String thumbnailPath;    // 缩略图路径
     private String description;      // 描述
+    private String state;            // 状态（ temp 临时/ active 已完成）
     private LocalDateTime addedAt;   // 添加时间
     private LocalDateTime updatedAt; // 更新时间
 
@@ -88,6 +89,14 @@ public class Resource {
         this.tags = tags;
     }
 
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
     @Override
     public String toString() {
         return "Resource{" +
@@ -96,6 +105,7 @@ public class Resource {
                 ", category='" + category + '\'' +
                 ", filePath='" + filePath + '\'' +
                 ", thumbnailPath='" + thumbnailPath + '\'' +
+                ", state='" + state + '\'' +
                 ", description='" + description + '\'' +
                 ", addedAt=" + addedAt +
                 ", updatedAt=" + updatedAt +

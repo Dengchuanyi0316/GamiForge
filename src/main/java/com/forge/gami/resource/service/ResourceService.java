@@ -3,6 +3,7 @@ package com.forge.gami.resource.service;
 import com.forge.gami.resource.model.Resource;
 import com.forge.gami.resource.model.Tag;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -61,4 +62,18 @@ public interface ResourceService {
      * @return 符合条件的资源列表
      */
     List<Resource> getResourcesByTagIds(List<Integer> tagIds);
+
+
+    @Transactional
+    Resource createTempResource(Resource resource);
+
+    @Transactional
+    Resource submitResourceForm(Integer resourceId, Map<String, Object> updateFields);
+
+    /**
+     * 生成 COS 上传签名
+     * @param key 上传文件在 COS 上的路径，例如 "uploads/myfile.png"
+     * @return COS 上传签名字符串
+     */
+    String generateCosSignature(String key);
 }

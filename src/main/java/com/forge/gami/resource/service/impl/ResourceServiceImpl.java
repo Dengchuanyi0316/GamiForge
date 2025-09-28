@@ -14,17 +14,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
@@ -48,6 +46,15 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Value("${server.base.url}")
     private String serverBaseUrl;
+
+    @Value("${cos.secretId}")
+    private String cosSecretId;
+
+    @Value("${cos.secretKey}")
+    private String cosSecretKey;
+
+    @Value("${cos.signature.duration:600}") // 签名有效期，单位秒，默认600秒
+    private long cosSignatureDuration;
 
     private final Map<String, TokenInfo> tempTokens = new ConcurrentHashMap<>();
 
@@ -438,6 +445,85 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public List<Resource> getResourcesByTagIds(List<Integer> tagIds) {
         return resourceMapper.selectResourcesByTagIds(tagIds);
+    }
+
+    @Override
+    @Transactional
+    public Resource createTempResource(Resource resource) {
+        resource.setAddedAt(java.time.LocalDateTime.now());
+        resource.setUpdatedAt(java.time.LocalDateTime.now());
+        resource.setState("temp"); // 新增状态字段
+        resourceMapper.insertResource(resource);
+        return resource;
+    }
+
+    @Override
+    @Transactional
+    public Resource submitResourceForm(Integer resourceId, Map<String, Object> updateFields) {
+        Resource resource = resourceMapper.selectResourceById(resourceId);
+        if (resource == null) {
+            throw new RuntimeException("资源不存在");
+        }
+
+        // 更新状态为 active
+        resource.setState("active");
+        resource.setUpdatedAt(java.time.LocalDateTime.now());
+
+        // 可选择更新其它字段
+        if (updateFields != null) {
+            if (updateFields.containsKey("name")) {
+                resource.setName((String) updateFields.get("name"));
+            }
+            if (updateFields.containsKey("category")) {
+                resource.setCategory((String) updateFields.get("category"));
+            }
+            if (updateFields.containsKey("description")) {
+                resource.setDescription((String) updateFields.get("description"));
+            }
+        }
+
+        resourceMapper.updateResource(resource);
+        return resource;
+    }
+
+    /**
+     * 生成 COS 上传签名
+     * @param key 上传文件在 COS 上的路径，例如 "uploads/myfile.png"
+     * @return COS 上传签名字符串
+     */
+    public String generateCosSignature(String key) {
+        try {
+            long now = System.currentTimeMillis() / 1000;
+            long end = now + cosSignatureDuration;
+
+            // 构造明文
+            String plainText = String.format(
+                    "a=%s&k=%s&e=%d&t=%d&r=%d&f=%s",
+                    cosSecretId,
+                    cosSecretKey,
+                    end,
+                    now,
+                    (int)(Math.random() * Integer.MAX_VALUE),
+                    key
+            );
+
+            // HmacSHA1 加密
+            Mac mac = Mac.getInstance("HmacSHA1");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(cosSecretKey.getBytes("UTF-8"), "HmacSHA1");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(plainText.getBytes("UTF-8"));
+
+            // 拼接 hash + 明文
+            byte[] all = new byte[hash.length + plainText.getBytes("UTF-8").length];
+            System.arraycopy(hash, 0, all, 0, hash.length);
+            System.arraycopy(plainText.getBytes("UTF-8"), 0, all, hash.length, plainText.getBytes("UTF-8").length);
+
+            // Base64 编码
+            return Base64.getEncoder().encodeToString(all);
+
+        } catch (Exception e) {
+            throw new RuntimeException("生成 COS 签名失败", e);
+        }
     }
 
 

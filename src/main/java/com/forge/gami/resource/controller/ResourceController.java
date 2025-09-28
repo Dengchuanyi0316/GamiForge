@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.nio.file.Files;
@@ -166,5 +167,19 @@ public class ResourceController {
     @GetMapping("/by-tag-ids")
     public List<Resource> getResourcesByTagIds(@RequestParam List<Integer> tagIds) {
         return resourceService.getResourcesByTagIds(tagIds);
+    }
+
+    /**
+     * 获取 COS 上传签名
+     * @param fileKey 上传文件在 COS 上的路径，例如 "uploads/example.png"
+     * @return 包含签名的 JSON 对象
+     */
+    @GetMapping("/cos-signature")
+    public Map<String, String> getCosSignature(@RequestParam String fileKey) {
+        String signature = resourceService.generateCosSignature(fileKey);
+        Map<String, String> result = new HashMap<>();
+        result.put("signature", signature);
+        result.put("fileKey", fileKey);
+        return result;
     }
 }

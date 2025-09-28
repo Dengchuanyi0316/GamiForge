@@ -10,6 +10,7 @@
         <result property="filePath" column="file_path"/>
         <result property="thumbnailPath" column="thumbnail_path"/>
         <result property="description" column="description"/>
+        <result property="state" column="state"/>
         <result property="addedAt" column="added_at"/>
         <result property="updatedAt" column="updated_at"/>
         <collection property="tags" ofType="com.forge.gami.resource.model.Tag">
@@ -53,8 +54,8 @@
 
     <!-- 新增资源 -->
     <insert id="insertResource" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO resources (name, category, file_path, thumbnail_path, description, added_at, updated_at)
-        VALUES (#{name}, #{category}, #{filePath}, #{thumbnailPath}, #{description}, #{addedAt}, #{updatedAt})
+        INSERT INTO resources (name, category, file_path, thumbnail_path, description, state, added_at, updated_at)
+        VALUES (#{name}, #{category}, #{filePath}, #{thumbnailPath}, #{description}, #{state}, #{addedAt}, #{updatedAt})
     </insert>
 
     <!-- 更新资源 -->
