@@ -37,6 +37,27 @@
             <version>2.1.4</version>
         </dependency>
 
+        <!-- 腾讯云COS SDK -->
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.159</version>
+        </dependency>
+
+        <!-- 腾讯云Java SDK核心 -->
+        <dependency>
+            <groupId>com.tencentcloudapi</groupId>
+            <artifactId>tencentcloud-sdk-java</artifactId>
+            <version>3.1.385</version>
+        </dependency>
+
+        <!-- 用于处理JSON -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
+        </dependency>
+
     </dependencies>
     <dependencyManagement>
         <dependencies>
