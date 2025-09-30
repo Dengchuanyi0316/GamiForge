@@ -237,4 +237,176 @@ public class CosService {
             cosClient.shutdown();
         }
     }
+
+    /**
+     * 初始化分片上传
+     */
+    public Map<String, String> initMultipartUpload(String fileName) {
+        // 生成唯一的文件路径
+        String dateDir = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        String key = cosConfig.getBasePath() + '/' + dateDir + '/' + UUID.randomUUID() + '_' + fileName;
+
+        COSCredentials cred = new BasicCOSCredentials(cosConfig.getSecretId(), cosConfig.getSecretKey());
+        ClientConfig clientConfig = new ClientConfig(new Region(cosConfig.getRegion()));
+        COSClient cosClient = new COSClient(cred, clientConfig);
+
+        try {
+            InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(
+                    cosConfig.getBucket(), key);
+
+            // 设置Content-Type（可选）
+            ObjectMetadata objectMetadata = new ObjectMetadata();
+            objectMetadata.setContentType(getContentType(fileName));
+            request.setObjectMetadata(objectMetadata);
+
+            InitiateMultipartUploadResult result = cosClient.initiateMultipartUpload(request);
+
+            // 准备返回结果
+            Map<String, String> uploadInfo = new HashMap<>();
+            uploadInfo.put("key", key);
+            uploadInfo.put("uploadId", result.getUploadId());
+            uploadInfo.put("cosUrl", "https://" + cosConfig.getBucket() + ".cos." + cosConfig.getRegion() + ".myqcloud.com");
+
+            return uploadInfo;
+        } catch (Exception e) {
+            throw new RuntimeException("初始化分片上传失败", e);
+        } finally {
+            cosClient.shutdown();
+        }
+    }
+
+    /**
+     * 为分片生成签名URL
+     */
+    public String generatePartUploadUrl(String key, String uploadId, int partNumber) {
+        try {
+            // 使用现有的generatePresignedUrl方法生成签名URL
+            URL url = generatePresignedUrlForPart(cosConfig.getBucket(), key, uploadId, partNumber);
+            return url.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("生成分片上传签名URL失败", e);
+        }
+    }
+
+    /**
+     * 完成分片上传
+     */
+    public Map<String, Object> completeMultipartUpload(String key, String uploadId, List<Map<String, Object>> parts) {
+        COSCredentials cred = new BasicCOSCredentials(cosConfig.getSecretId(), cosConfig.getSecretKey());
+        ClientConfig clientConfig = new ClientConfig(new Region(cosConfig.getRegion()));
+        COSClient cosClient = new COSClient(cred, clientConfig);
+
+        try {
+            // 构建分片列表
+            List<PartETag> partETags = new ArrayList<>();
+            for (Map<String, Object> part : parts) {
+                Integer partNumber = (Integer) part.get("PartNumber");
+                String eTag = (String) part.get("ETag");
+                partETags.add(new PartETag(partNumber, eTag));
+            }
+
+            // 完成分片上传请求
+            CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
+                    cosConfig.getBucket(), key, uploadId, partETags);
+
+            CompleteMultipartUploadResult result = cosClient.completeMultipartUpload(request);
+
+            // 准备返回结果
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("location", result.getLocation());
+            resultMap.put("bucket", result.getBucketName());
+            resultMap.put("key", result.getKey());
+            resultMap.put("etag", result.getETag());
+
+            return resultMap;
+        } catch (Exception e) {
+            throw new RuntimeException("完成分片上传失败", e);
+        } finally {
+            cosClient.shutdown();
+        }
+    }
+
+    /**
+     * 取消分片上传
+     */
+    public void abortMultipartUpload(String key, String uploadId) {
+        COSCredentials cred = new BasicCOSCredentials(cosConfig.getSecretId(), cosConfig.getSecretKey());
+        ClientConfig clientConfig = new ClientConfig(new Region(cosConfig.getRegion()));
+        COSClient cosClient = new COSClient(cred, clientConfig);
+
+        try {
+            AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
+                    cosConfig.getBucket(), key, uploadId);
+            cosClient.abortMultipartUpload(request);
+        } catch (Exception e) {
+            throw new RuntimeException("取消分片上传失败", e);
+        } finally {
+            cosClient.shutdown();
+        }
+    }
+
+    /**
+     * 为分片上传生成签名URL的专用方法
+     */
+    private URL generatePresignedUrlForPart(String bucket, String key, String uploadId, int partNumber) {
+        COSCredentials cred = new BasicCOSCredentials(cosConfig.getSecretId(), cosConfig.getSecretKey());
+        ClientConfig clientConfig = new ClientConfig(new Region(cosConfig.getRegion()));
+        COSClient cosClient = new COSClient(cred, clientConfig);
+
+        try {
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key, HttpMethodName.PUT);
+            request.setExpiration(new Date(System.currentTimeMillis() + cosConfig.getTempExpire() * 1000));
+            request.addRequestParameter("partNumber", String.valueOf(partNumber));
+            request.addRequestParameter("uploadId", uploadId);
+            return cosClient.generatePresignedUrl(request);
+        } finally {
+            cosClient.shutdown();
+        }
+    }
+
+    /**
+     * 根据文件名获取Content-Type
+     */
+    private String getContentType(String fileName) {
+        String extension = StringUtils.getFilenameExtension(fileName);
+        if (extension == null) {
+            return "application/octet-stream";
+        }
+
+        switch (extension.toLowerCase()) {
+            case "jpg":
+            case "jpeg":
+                return "image/jpeg";
+            case "png":
+                return "image/png";
+            case "gif":
+                return "image/gif";
+            case "bmp":
+                return "image/bmp";
+            case "pdf":
+                return "application/pdf";
+            case "doc":
+            case "docx":
+                return "application/msword";
+            case "xls":
+            case "xlsx":
+                return "application/vnd.ms-excel";
+            case "ppt":
+            case "pptx":
+                return "application/vnd.ms-powerpoint";
+            case "zip":
+                return "application/zip";
+            case "txt":
+                return "text/plain";
+            case "html":
+            case "htm":
+                return "text/html";
+            case "css":
+                return "text/css";
+            case "js":
+                return "application/javascript";
+            default:
+                return "application/octet-stream";
+        }
+    }
 }

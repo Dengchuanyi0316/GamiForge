@@ -25,7 +25,6 @@ public class CosController {
      */
     @PostMapping("/create-temp-file")
     public ResponseEntity<?> createTempFileAndGetSign(@RequestBody Map<String, Object> data) {
-        System.out.println("来了老弟================");
         try {
             String fileName = (String) data.get("fileName");
             String fileType = (String) data.get("fileType");
@@ -170,6 +169,88 @@ public class CosController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ResponseResult.error(500, "获取文件预览URL失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 初始化分片上传
+     */
+    @PostMapping("/create-multipart-upload")
+    public ResponseEntity<?> createMultipartUpload(@RequestBody Map<String, Object> data) {
+        try {
+            String fileName = (String) data.get("fileName");
+            // fileSize 参数在这个接口中可以不直接使用，但保留以便将来扩展
+
+            Map<String, String> uploadInfo = cosService.initMultipartUpload(fileName);
+
+            return ResponseEntity.ok(ResponseResult.success("初始化分片上传成功", uploadInfo));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseResult.error(500, "初始化分片上传失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 为分片生成签名URL
+     */
+    @PostMapping("/sign-part")
+    public ResponseEntity<?> signPart(@RequestBody Map<String, Object> data) {
+        try {
+            String key = (String) data.get("key");
+            String uploadId = (String) data.get("uploadId");
+            Integer partNumber = data.get("partNumber") instanceof Number ?
+                    ((Number) data.get("partNumber")).intValue() : 1;
+
+            String signedUrl = cosService.generatePartUploadUrl(key, uploadId, partNumber);
+
+            Map<String, String> result = new HashMap<>();
+            result.put("url", signedUrl);
+
+            return ResponseEntity.ok(ResponseResult.success("生成分片上传URL成功", result));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseResult.error(500, "生成分片上传URL失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 完成分片上传
+     */
+    @PostMapping("/complete-multipart-upload")
+    public ResponseEntity<?> completeMultipartUpload(@RequestBody Map<String, Object> data) {
+        try {
+            String key = (String) data.get("key");
+            String uploadId = (String) data.get("uploadId");
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) data.get("parts");
+
+            Map<String, Object> result = cosService.completeMultipartUpload(key, uploadId, parts);
+
+            return ResponseEntity.ok(ResponseResult.success("完成分片上传成功", result));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseResult.error(500, "完成分片上传失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 取消分片上传
+     */
+    @PostMapping("/abort-multipart-upload")
+    public ResponseEntity<?> abortMultipartUpload(@RequestBody Map<String, Object> data) {
+        try {
+            String key = (String) data.get("key");
+            String uploadId = (String) data.get("uploadId");
+
+            cosService.abortMultipartUpload(key, uploadId);
+
+            return ResponseEntity.ok(ResponseResult.success("取消分片上传成功", null));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseResult.error(500, "取消分片上传失败: " + e.getMessage()));
         }
     }
 }
